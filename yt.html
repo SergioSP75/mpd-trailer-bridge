@@ -6,16 +6,22 @@
 <script>
 /* Página puente: incrusta un vídeo de YouTube (silenciado, sin controles, en bucle) para la app de LG.
    Se publica en https (p. ej. GitHub Pages) porque YouTube no admite embebidos desde archivos locales (error 153). */
-var id = new URLSearchParams(location.search).get('v') || '';
+var qs = new URLSearchParams(location.search), id = qs.get('v') || '', withSound = qs.get('s') === '1';   // s=1 → intenta con audio
 if (/^[A-Za-z0-9_-]{11}$/.test(id)) {
   var tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
   window.onYouTubeIframeAPIReady = function () {
     new YT.Player('p', { videoId: id, width: '100%', height: '100%',
       playerVars: { autoplay: 1, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, loop: 1, playlist: id, disablekb: 1, fs: 0, iv_load_policy: 3 },
       events: {
-        onReady: function (e) { e.target.mute(); e.target.playVideo(); },
+        onReady: function (e) { e.target.mute(); e.target.playVideo(); },   // se arranca silenciado (siempre permitido) y, si piden sonido, se activa al empezar
         // Avisa a la app (página padre) del estado: 1 = reproduciendo; onError → la app quita el tráiler y deja el póster
-        onStateChange: function (e) { parent.postMessage({ mpdTrailer: 'state', state: e.data }, '*'); },
+        onStateChange: function (e) {
+          if (e.data === 1 && withSound && !window.__unmuted) {          // ya reproduce: se activa el audio; si el navegador lo bloquea y pausa, se vuelve a silenciar
+            window.__unmuted = true; e.target.unMute(); e.target.setVolume(100);
+            setTimeout(function () { if (e.target.getPlayerState() !== 1) { e.target.mute(); e.target.playVideo(); parent.postMessage({ mpdTrailer: 'muted' }, '*'); } }, 1200);
+          }
+          parent.postMessage({ mpdTrailer: 'state', state: e.data }, '*');
+        },
         onError: function (e) { parent.postMessage({ mpdTrailer: 'error', code: e.data }, '*'); }
       } });
   };
