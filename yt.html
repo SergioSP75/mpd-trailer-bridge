@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puente de tráiler</title>
+<style>html,body{margin:0;height:100%;background:#000;overflow:hidden}#p{position:absolute;inset:0}</style></head>
+<body><div id="p"></div>
+<script>
+/* Página puente: incrusta un vídeo de YouTube (silenciado, sin controles, en bucle) para la app de LG.
+   Se publica en https (p. ej. GitHub Pages) porque YouTube no admite embebidos desde archivos locales (error 153). */
+var id = new URLSearchParams(location.search).get('v') || '';
+if (/^[A-Za-z0-9_-]{11}$/.test(id)) {
+  var tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
+  window.onYouTubeIframeAPIReady = function () {
+    new YT.Player('p', { videoId: id, width: '100%', height: '100%',
+      playerVars: { autoplay: 1, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, loop: 1, playlist: id, disablekb: 1, fs: 0, iv_load_policy: 3 },
+      events: {
+        onReady: function (e) { e.target.mute(); e.target.playVideo(); },
+        // Avisa a la app (página padre) del estado: 1 = reproduciendo; onError → la app quita el tráiler y deja el póster
+        onStateChange: function (e) { parent.postMessage({ mpdTrailer: 'state', state: e.data }, '*'); },
+        onError: function (e) { parent.postMessage({ mpdTrailer: 'error', code: e.data }, '*'); }
+      } });
+  };
+}
+</script></body></html>
