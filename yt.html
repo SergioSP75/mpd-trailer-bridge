@@ -6,12 +6,12 @@
 <script>
 /* Página puente: incrusta un vídeo de YouTube (silenciado, sin controles, en bucle) para la app de LG.
    Se publica en https (p. ej. GitHub Pages) porque YouTube no admite embebidos desde archivos locales (error 153). */
-var qs = new URLSearchParams(location.search), id = qs.get('v') || '', withSound = qs.get('s') === '1';   // s=1 → intenta con audio
+var qs = new URLSearchParams(location.search), id = qs.get('v') || '', withSound = qs.get('s') === '1', loop = qs.get('l') !== '0', ctrls = qs.get('c') === '1';   // s=1 → intenta con audio
 if (/^[A-Za-z0-9_-]{11}$/.test(id)) {
   var tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
   window.onYouTubeIframeAPIReady = function () {
     new YT.Player('p', { videoId: id, width: '100%', height: '100%',
-      playerVars: { autoplay: 1, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, loop: 1, playlist: id, disablekb: 1, fs: 0, iv_load_policy: 3 },
+      playerVars: { autoplay: 1, mute: 1, controls: ctrls ? 1 : 0, rel: 0, modestbranding: 1, playsinline: 1, loop: loop ? 1 : 0, playlist: loop ? id : undefined, disablekb: ctrls ? 0 : 1, fs: ctrls ? 1 : 0, iv_load_policy: 3 },
       events: {
         onReady: function (e) { e.target.mute(); e.target.playVideo(); },   // se arranca silenciado (siempre permitido) y, si piden sonido, se activa al empezar
         // Avisa a la app (página padre) del estado: 1 = reproduciendo; onError → la app quita el tráiler y deja el póster
